@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+	<script>
+	$(document).ready(function(){
+		var socket = io();
+		$("#chat").hide();
+		$("#name").focus();
+		$("form").submit(function(event){
+    		event.preventDefault();
+		});
+		$("#join").click(function(){
+			var name = $("#name").val();
+			if (name != "") {
+				socket.emit("join", name);
+				$("#login").detach();
+				$("#chat").show();
+				$("#msg").focus();
+				ready = true;
+			}
+		});
+		$("#name").keypress(function(e){
+			if(e.which == 13) {
+				var name = $("#name").val();
+				if (name != "") {
+					socket.emit("join", name);
+					ready = true;
+					$("#login").detach();
+					$("#chat").show();
+					$("#msg").focus();
+				}
+			}
+		});
+		socket.on("update", function(msg) {
+			if(ready)
+				$("#msgs").append("<li class=\"list-group-item\">" + msg + "</li>");
+		})
+		socket.on("update-people", function(people){
+			if(ready) {
+				$("#people").empty();
+				$.each(people, function(clientid, name) {
+					$('#people').append("<li class=\"list-group-item\">" + name + "</li>");
+				});
+			}
+		});
+		socket.on("chat", function(who, msg){
+			if(ready) {
+				$("#msgs").append("<li class=\"list-group-item\"><strong><span class='text-success'>" + who + "</span></strong> says: " + msg + "</li>");
+			}
+		});
+		socket.on("disconnect", function(){
+			$("#msgs").append("<li class=\"list-group-item\"><strong><span class='text-warning'>The server is not available</span></strong></li>");
+			$("#msg").attr("disabled", "disabled");
+			$("#send").attr("disabled", "disabled");
+		});
+		$("#send").click(function(){
+			var msg = $("#msg").val();
+			socket.emit("send", msg);
+			$("#msg").val("");
+		});
+		$("#msg").keypress(function(e){
+			if(e.which == 13) {
+				var msg = $("#msg").val();
+				socket.emit("send", msg);
+				$("#msg").val("");
+			}
+		});
+	});
+</script>
+<body>
+
+<div class="container">
+  <div class="span2" style="max-height: 20vh;overflow-y:scroll">
+  	<ul id="people" class="list-group"></ul>
+  </div>
+  <div class="span4" style="max-height: 60vh;overflow-y:scroll">
+  	<ul id="msgs" class="list-group"></ul>
+  </div>
+<div class="row justify-content-center">
+	<div class="span5 offset2" id="login">
+		<form class="form-inline">
+      <div class="input-group mb-3">
+  		<input type="text" class="form-control" placeholder="Your name" id="name">
+    </div>
+    <input type="button" name="join" id="join" value="Join" class="btn btn-primary">
+    </form>
+	</div>
+	<div class="span5 offset2" id="chat">
+		<form id="2" class="form-inline">
+      <div class="input-group mb-3">
+        <input type="text" class="input" placeholder="Your message" id="msg">
+      </div>
+      <input type="button" name="send" id="send" value="Send" class="btn btn-success">
+		</form>
+	</div>
+  </div>
+</div>
+</body>
+</html>
